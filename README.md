@@ -58,4 +58,5 @@ git push heroku main
 
 If everything worked fine sites should be looking like this.
 [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://share.streamlit.io/dream4theater/streamlit-object-detection-app/main/app.py)
+
 [Heroku App](https://streamlit-object-detection-app.herokuapp.com/)
