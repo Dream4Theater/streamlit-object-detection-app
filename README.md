@@ -36,7 +36,7 @@ git push -u origin main
 
 2. And u can easily deploy like this
 
-![alt text](https://github.com/Dream4Theater/streamlit-object-detection-app/blob/main/images/streamlit_sharing_silent.mp4?raw=true)
+![alt text](https://github.com/Dream4Theater/streamlit-object-detection-app/blob/main/images/streamlit_sharing_silent.gif?raw=true)
 
 # Deploy Heroku
 
@@ -51,11 +51,12 @@ heroku login
 
 ```bash
 heroku create <your-app-name>
-git psuh heroku main
+git push heroku main
 ```
 
 # Conclusion
 
 If everything worked fine sites should be looking like this.
 [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://share.streamlit.io/dream4theater/streamlit-object-detection-app/main/app.py)
+
 [Heroku App](https://streamlit-object-detection-app.herokuapp.com/)
