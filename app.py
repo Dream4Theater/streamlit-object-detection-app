@@ -16,11 +16,11 @@ select = st.sidebar.selectbox("Select Model",['Yolov4-tiny', 'Yolov3-tiny', 'Yol
 
 # Load Model
 if select == 'Yolov4-tiny':
-    net = cv2.dnn.readNet("yolov4-tiny.weights", "yolov4-tiny.cfg")
+    net = cv2.dnn.readNet("models/yolov4-tiny.weights", "models/yolov4-tiny.cfg")
 elif select == 'Yolov3-tiny':
-    net = cv2.dnn.readNet("yolov3-tiny.weights", "yolov3-tiny.cfg")
+    net = cv2.dnn.readNet("models/yolov3-tiny.weights", "models/yolov3-tiny.cfg")
 elif select == 'Yolov2-tiny':
-    net = cv2.dnn.readNet("yolov2-tiny.weights", "yolov2-tiny.cfg")
+    net = cv2.dnn.readNet("models/yolov2-tiny.weights", "models/yolov2-tiny.cfg")
 
 classes = []
 with open("coco.names", "r") as f:
