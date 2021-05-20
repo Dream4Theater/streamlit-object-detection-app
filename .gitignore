@@ -140,5 +140,4 @@ dmypy.json
 cython_debug/
 
 # app data
-models
 data
