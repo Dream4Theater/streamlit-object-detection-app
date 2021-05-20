@@ -1,1 +1,1 @@
-# streamlit-object-detection-app
+## Streamlit Object Detection App
