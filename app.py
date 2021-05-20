@@ -1,7 +1,12 @@
 import cv2 
 import numpy as np
 import streamlit as st
-from streamlit_webrtc import VideoTransformerBase, webrtc_streamer
+from streamlit_webrtc import VideoTransformerBase, webrtc_streamer, ClientSettings
+
+WEBRTC_CLIENT_SETTINGS = ClientSettings(
+    rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
+    media_stream_constraints={"video": True, "audio": True},
+)
 
 st.title("Object Detection with Yolov4-tiny")
 
@@ -59,4 +64,4 @@ class VideoTransformer(VideoTransformerBase):
                 cv2.putText(img, label, (x, y + 30), font, 3, color, 3)
         return img
 
-webrtc_ctx = webrtc_streamer(key="example", video_transformer_factory=VideoTransformer, async_transform=True)
+webrtc_ctx = webrtc_streamer(key="example", video_transformer_factory=VideoTransformer, client_settings=WEBRTC_CLIENT_SETTINGS, async_transform=True)
