@@ -12,12 +12,15 @@ st.title("Object Detection")
 
 #Select Model
 st.sidebar.title("Models")
-select = st.sidebar.selectbox("Select Model",['Yolov4-tiny'], key='1')
+select = st.sidebar.selectbox("Select Model",['Yolov4-tiny', 'Yolov3-tiny', 'Yolov2-tiny'], key='1')
 
 # Load Model
 if select == 'Yolov4-tiny':
     net = cv2.dnn.readNet("yolov4-tiny.weights", "yolov4-tiny.cfg")
-
+elif select == 'Yolov3-tiny':
+    net = cv2.dnn.readNet("yolov3-tiny.weights", "yolov3-tiny.cfg")
+elif select == 'Yolov2-tiny':
+    net = cv2.dnn.readNet("yolov2-tiny.weights", "yolov2-tiny.cfg")
 
 classes = []
 with open("coco.names", "r") as f:
