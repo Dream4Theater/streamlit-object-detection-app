@@ -59,5 +59,6 @@ class VideoTransformer(VideoTransformerBase):
                 cv2.putText(img, label, (x, y + 30), font, 3, color, 3)
                 
         return img
-    
-webrtc_streamer(key="example", video_transformer_factory=VideoTransformer)
+
+webrtc_ctx = webrtc_streamer(key="example", video_transformer_factory=VideoTransformer)
+result = webrtc_ctx.video_transformer.result_queue.get(timeout=1.0)
