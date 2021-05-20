@@ -5,8 +5,6 @@ from streamlit_webrtc import VideoTransformerBase, webrtc_streamer
 
 st.title("Object Detection with Yolov4-tiny")
 
-image_placeholder = st.empty()
-
 # Load Yolo
 net = cv2.dnn.readNet("yolov4-tiny.weights", "yolov4-tiny.cfg")
 classes = []
