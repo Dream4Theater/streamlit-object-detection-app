@@ -8,10 +8,17 @@ WEBRTC_CLIENT_SETTINGS = ClientSettings(
     media_stream_constraints={"video": True, "audio": True},
 )
 
-st.title("Object Detection with Yolov4-tiny")
+st.title("Object Detection")
 
-# Load Yolo
-net = cv2.dnn.readNet("yolov4-tiny.weights", "yolov4-tiny.cfg")
+#Select Model
+st.sidebar.title("Models")
+select = st.sidebar.selectbox(['Yolov4-tiny'], key='1')
+
+# Load Model
+if select == 'Yolov4-tiny':
+    net = cv2.dnn.readNet("yolov4-tiny.weights", "yolov4-tiny.cfg")
+
+
 classes = []
 with open("coco.names", "r") as f:
     classes = [line.strip() for line in f.readlines()]
