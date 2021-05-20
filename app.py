@@ -15,17 +15,10 @@ layer_names = net.getLayerNames()
 output_layers = [layer_names[i[0] - 1] for i in net.getUnconnectedOutLayers()]
 colors = np.random.uniform(0, 255, size=(len(classes), 3))
 
-cap = cv2.VideoCapture(1)
-cap.set(3,1280)
-cap.set(4,720)
-start = st.button("start")
-stop = st.button("stop")
-
-
-if start:
-    while True:
+class VideoTransformer(VideoTransformerBase):
+    def transform(self, frame):
+        img = frame.to_ndarray(format="bgr24")
         # Loading image
-        success, img = cap.read()
         height, width, channels = img.shape
         
         # Detecting objects
@@ -56,8 +49,6 @@ if start:
                     class_ids.append(class_id)
                     
         indexes = cv2.dnn.NMSBoxes(boxes, confidences, 0.5, 0.4)
-        
-        
             
         font = cv2.FONT_HERSHEY_PLAIN
         for i in range(len(boxes)):
@@ -67,7 +58,7 @@ if start:
                 color = colors[i]
                 cv2.rectangle(img, (x, y), (x + w, y + h), color, 2)
                 cv2.putText(img, label, (x, y + 30), font, 3, color, 3)
-        image_placeholder.image(img,channels="BGR")            
-        if stop:
-            cv2.destroyAllWindows()
-            break
+                
+        return img
+    
+webrtc_streamer(key="example", video_transformer_factory=VideoTransformer)
