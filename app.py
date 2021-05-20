@@ -12,7 +12,7 @@ st.title("Object Detection")
 
 #Select Model
 st.sidebar.title("Models")
-select = st.sidebar.selectbox(['Yolov4-tiny'], key='1')
+select = st.sidebar.selectbox("Select Model",['Yolov4-tiny'], key='1')
 
 # Load Model
 if select == 'Yolov4-tiny':
