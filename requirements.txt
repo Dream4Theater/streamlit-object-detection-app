@@ -1,3 +1,4 @@
 opencv-python
 numpy
 streamlit
+python3-opencv
