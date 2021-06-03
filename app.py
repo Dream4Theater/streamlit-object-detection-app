@@ -9,8 +9,6 @@ WEBRTC_CLIENT_SETTINGS = ClientSettings(
     media_stream_constraints={"video": True, "audio": True},
 )
 
-st.title("Object Detection")
-
 #Select Model
 st.sidebar.title("Models")
 select = st.sidebar.selectbox("Select Model",['Yolov4-tiny', 'Yolov3-tiny', 'Yolov2-tiny', 'OpenPose Detection'], key='1')
@@ -59,6 +57,7 @@ elif select == 'OpenPose Detection':
     flag = 1
     
 if flag == 0:
+    st.title("Object Detection")
     classes = []
     with open("coco.names", "r") as f:
         classes = [line.strip() for line in f.readlines()]
@@ -115,6 +114,9 @@ if flag == 0:
 
     webrtc_ctx = webrtc_streamer(key="example", video_transformer_factory=VideoTransformer, client_settings=WEBRTC_CLIENT_SETTINGS, async_transform=True)
 elif flag == 1:
+
+    st.title("Pose Detection")
+    
     class VideoTransformer(VideoTransformerBase):
         def transform(self, frame):
             img = frame.to_ndarray(format="bgr24")
