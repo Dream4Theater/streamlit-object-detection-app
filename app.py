@@ -15,7 +15,7 @@ st.title("Object Detection")
 st.sidebar.title("Models")
 select = st.sidebar.selectbox("Select Model",['Yolov4-tiny', 'Yolov3-tiny', 'Yolov2-tiny', 'OpenPose Detection'], key='1')
 
-net = cv.dnn.readNetFromTensorflow("graph_opt.pb")
+net = cv2.dnn.readNetFromTensorflow("graph_opt.pb")
 
 WEBRTC_CLIENT_SETTINGS = ClientSettings(
     rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
@@ -121,7 +121,7 @@ elif flag == 1:
         
             frameHeight, frameWidth, channels = img.shape
             
-            net.setInput(cv.dnn.blobFromImage(img, 1.0, (inWidth, inHeight), (127.5, 127.5, 127.5), swapRB=True, crop=False))
+            net.setInput(cv2.dnn.blobFromImage(img, 1.0, (inWidth, inHeight), (127.5, 127.5, 127.5), swapRB=True, crop=False))
             out = net.forward()
             out = out[:, :19, :, :]  # MobileNet output [1, 57, -1, -1], we only need the first 19 elements
         
@@ -135,7 +135,7 @@ elif flag == 1:
                 # Originally, we try to find all the local maximums. To simplify a sample
                 # we just find a global one. However only a single pose at the same time
                 # could be detected this way.
-                _, conf, _, point = cv.minMaxLoc(heatMap)
+                _, conf, _, point = cv2.minMaxLoc(heatMap)
                 x = (frameWidth * point[0]) / out.shape[3]
                 y = (frameHeight * point[1]) / out.shape[2]
                 # Add a point if it's confidence is higher than threshold.
@@ -151,13 +151,13 @@ elif flag == 1:
                 idTo = BODY_PARTS[partTo]
         
                 if points[idFrom] and points[idTo]:
-                    cv.line(img, points[idFrom], points[idTo], (0, 255, 0), 3)
-                    cv.ellipse(img, points[idFrom], (3, 3), 0, 0, 360, (0, 0, 255), cv.FILLED)
-                    cv.ellipse(img, points[idTo], (3, 3), 0, 0, 360, (0, 0, 255), cv.FILLED)
+                    cv2.line(img, points[idFrom], points[idTo], (0, 255, 0), 3)
+                    cv2.ellipse(img, points[idFrom], (3, 3), 0, 0, 360, (0, 0, 255), cv2.FILLED)
+                    cv2.ellipse(img, points[idTo], (3, 3), 0, 0, 360, (0, 0, 255), cv2.FILLED)
         
             t, _ = net.getPerfProfile()
-            freq = cv.getTickFrequency() / 1000
-            cv.putText(img, '%.2fms' % (t / freq), (10, 20), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0))
+            freq = cv2.getTickFrequency() / 1000
+            cv2.putText(img, '%.2fms' % (t / freq), (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0))
         
             return img
 
