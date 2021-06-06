@@ -1,6 +1,7 @@
 import cv2 
 import numpy as np
 import streamlit as st
+from typing import List
 from streamlit_webrtc import (
     AudioProcessorBase,
     ClientSettings,
@@ -12,11 +13,68 @@ import argparse
 import av
 import pydub
 import asyncio
+from pathlib import Path
+import urllib.request
+import time
+
+HERE = Path(__file__).parent
 
 WEBRTC_CLIENT_SETTINGS = ClientSettings(
     rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
     media_stream_constraints={"video": True, "audio": True},
 )
+def download_file(url, download_to: Path, expected_size=None):
+    # Don't download the file twice.
+    # (If possible, verify the download using the file length.)
+    if download_to.exists():
+        if expected_size:
+            if download_to.stat().st_size == expected_size:
+                return
+        else:
+            st.info(f"{url} is already downloaded.")
+            if not st.button("Download again?"):
+                return
+
+    download_to.parent.mkdir(parents=True, exist_ok=True)
+
+    # These are handles to two visual elements to animate.
+    weights_warning, progress_bar = None, None
+    try:
+        weights_warning = st.warning("Downloading %s..." % url)
+        progress_bar = st.progress(0)
+        with open(download_to, "wb") as output_file:
+            with urllib.request.urlopen(url) as response:
+                length = int(response.info()["Content-Length"])
+                counter = 0.0
+                MEGABYTES = 2.0 ** 20.0
+                while True:
+                    data = response.read(8192)
+                    if not data:
+                        break
+                    counter += len(data)
+                    output_file.write(data)
+
+                    # We perform animation by overwriting the elements.
+                    weights_warning.warning(
+                        "Downloading %s... (%6.2f/%6.2f MB)"
+                        % (url, counter / MEGABYTES, length / MEGABYTES)
+                    )
+                    progress_bar.progress(min(counter / length, 1.0))
+    # Finally, we remove these visual elements by calling .empty().
+    finally:
+        if weights_warning is not None:
+            weights_warning.empty()
+        if progress_bar is not None:
+            progress_bar.empty()
+
+# https://github.com/mozilla/DeepSpeech/releases/tag/v0.9.3
+MODEL_URL = "https://github.com/mozilla/DeepSpeech/releases/download/v0.9.3/deepspeech-0.9.3-models.pbmm"  # noqa
+LANG_MODEL_URL = "https://github.com/mozilla/DeepSpeech/releases/download/v0.9.3/deepspeech-0.9.3-models.scorer"  # noqa
+MODEL_LOCAL_PATH = HERE / "models/deepspeech-0.9.3-models.pbmm"
+LANG_MODEL_LOCAL_PATH = HERE / "models/deepspeech-0.9.3-models.scorer"
+
+download_file(MODEL_URL, MODEL_LOCAL_PATH, expected_size=188915987)
+download_file(LANG_MODEL_URL, LANG_MODEL_LOCAL_PATH, expected_size=953363776)
 
 st.sidebar.title("Programs")
 select = st.sidebar.selectbox("Select Program",['Object Detection', 'OpenPose Detection', 'Speech to Text'], key='1')
@@ -165,44 +223,88 @@ elif flag == 1:
 
 elif 2:
     st.title("Speech to Text")
-    DEFAULT_GAIN = 1.0
 
     class AudioProcessor(AudioProcessorBase):
-        gain = DEFAULT_GAIN
 
-        def recv(self, frame: av.AudioFrame) -> av.AudioFrame:
-            raw_samples = frame.to_ndarray()
-            sound = pydub.AudioSegment(
-                data=raw_samples.tobytes(),
-                sample_width=frame.format.bytes,
-                frame_rate=frame.sample_rate,
-                channels=len(frame.layout.channels),
-            )
+        async def recv_queued(self, frames: List[av.AudioFrame]) -> av.AudioFrame:
+            with self.frames_lock:
+                self.frames.extend(frames)
 
-            sound = sound.apply_gain(self.gain)
+            # Return empty frames to be silent.
+            new_frames = []
+            for frame in frames:
+                input_array = frame.to_ndarray()
+                new_frame = av.AudioFrame.from_ndarray(
+                    np.zeros(input_array.shape, dtype=input_array.dtype),
+                    layout=frame.layout.name,
+                )
+                new_frame.sample_rate = frame.sample_rate
+                new_frames.append(new_frame)
 
-            # Ref: https://github.com/jiaaro/pydub/blob/master/API.markdown#audiosegmentget_array_of_samples  # noqa
-            channel_sounds = sound.split_to_mono()
-            channel_samples = [s.get_array_of_samples() for s in channel_sounds]
-            new_samples: np.ndarray = np.array(channel_samples).T
-            new_samples = new_samples.reshape(raw_samples.shape)
-
-            new_frame = av.AudioFrame.from_ndarray(
-                new_samples, layout=frame.layout.name
-            )
-            new_frame.sample_rate = frame.sample_rate
-            return new_frame
-
+            return new_frames
     webrtc_ctx = webrtc_streamer(
-        key="audio-filter",
+        key="speech-to-text-w-video",
         mode=WebRtcMode.SENDRECV,
-        client_settings=WEBRTC_CLIENT_SETTINGS,
         audio_processor_factory=AudioProcessor,
-        async_processing=True,
+        client_settings=ClientSettings(
+            rtc_configuration={
+                "iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]
+            },
+            media_stream_constraints={"video": True, "audio": True},
+        ),
     )
+    while True:
+        lm_alpha = 0.931289039105002
+        lm_beta = 1.1834137581510284
+        beam = 100
+        status_indicator = st.empty()
+        text_output = st.empty()
 
-    if webrtc_ctx.audio_processor:
-        webrtc_ctx.audio_processor.gain = st.slider(
-            "Gain", -10.0, +20.0, DEFAULT_GAIN, 0.05
-        )
-    
+        if webrtc_ctx.audio_processor:
+            if stream is None:
+                from deepspeech import Model
+
+                model = Model(MODEL_LOCAL_PATH)
+                model.enableExternalScorer(LANG_MODEL_LOCAL_PATH)
+                model.setScorerAlphaBeta(lm_alpha, lm_beta)
+                model.setBeamWidth(beam)
+
+                stream = model.createStream()
+
+                status_indicator.write("Model loaded.")
+
+            sound_chunk = pydub.AudioSegment.empty()
+
+            audio_frames = []
+            with webrtc_ctx.audio_processor.frames_lock:
+                while len(webrtc_ctx.audio_processor.frames) > 0:
+                    frame = webrtc_ctx.audio_processor.frames.popleft()
+                    audio_frames.append(frame)
+
+            if len(audio_frames) == 0:
+                time.sleep(0.1)
+                status_indicator.write("No frame arrived.")
+                continue
+
+            status_indicator.write("Running. Say something!")
+
+            for audio_frame in audio_frames:
+                sound = pydub.AudioSegment(
+                    data=audio_frame.to_ndarray().tobytes(),
+                    sample_width=audio_frame.format.bytes,
+                    frame_rate=audio_frame.sample_rate,
+                    channels=len(audio_frame.layout.channels),
+                )
+                sound_chunk += sound
+
+            if len(sound_chunk) > 0:
+                sound_chunk = sound_chunk.set_channels(1).set_frame_rate(
+                    model.sampleRate()
+                )
+                buffer = np.array(sound_chunk.get_array_of_samples())
+                stream.feedAudioContent(buffer)
+                text = stream.intermediateDecode()
+                text_output.markdown(f"**Text:** {text}")
+        else:
+            status_indicator.write("AudioReciver is not set. Abort.")
+            break
