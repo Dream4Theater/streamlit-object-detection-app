@@ -172,7 +172,7 @@ elif 2:
     # speech to text and text to speech
     webrtc_ctx = webrtc_streamer(key="audio filter", client_settings=WEBRTC_CLIENT_SETTINGS, async_transform=True)
     # Initialize the recognizer 
-    r = sr.Recognizer() 
+    r = sr.Recognizer()
     
     # Function to convert text to
     # speech
