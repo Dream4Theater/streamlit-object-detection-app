@@ -12,90 +12,17 @@ import argparse
 import av
 import pydub
 
-net = cv2.dnn.readNetFromTensorflow("graph_opt.pb")
-
 WEBRTC_CLIENT_SETTINGS = ClientSettings(
     rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
     media_stream_constraints={"video": True, "audio": True},
 )
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--input', help='Path to image or video. Skip to capture frames from camera')
-parser.add_argument('--thr', default=0.2, type=float, help='Threshold value for pose parts heat map')
-parser.add_argument('--width', default=368, type=int, help='Resize input to specific width.')
-parser.add_argument('--height', default=368, type=int, help='Resize input to specific height.')
-
-args = parser.parse_args()
-
-BODY_PARTS = { "Nose": 0, "Neck": 1, "RShoulder": 2, "RElbow": 3, "RWrist": 4,
-               "LShoulder": 5, "LElbow": 6, "LWrist": 7, "RHip": 8, "RKnee": 9,
-               "RAnkle": 10, "LHip": 11, "LKnee": 12, "LAnkle": 13, "REye": 14,
-               "LEye": 15, "REar": 16, "LEar": 17, "Background": 18 }
-
-POSE_PAIRS = [ ["Neck", "RShoulder"], ["Neck", "LShoulder"], ["RShoulder", "RElbow"],
-               ["RElbow", "RWrist"], ["LShoulder", "LElbow"], ["LElbow", "LWrist"],
-               ["Neck", "RHip"], ["RHip", "RKnee"], ["RKnee", "RAnkle"], ["Neck", "LHip"],
-               ["LHip", "LKnee"], ["LKnee", "LAnkle"], ["Neck", "Nose"], ["Nose", "REye"],
-               ["REye", "REar"], ["Nose", "LEye"], ["LEye", "LEar"] ]
-
-inWidth = args.width
-inHeight = args.height
-
-def app_audio_filter():
-    DEFAULT_GAIN = 1.0
-
-    class AudioProcessor(AudioProcessorBase):
-        gain = DEFAULT_GAIN
-
-        def recv(self, frame: av.AudioFrame) -> av.AudioFrame:
-            raw_samples = frame.to_ndarray()
-            sound = pydub.AudioSegment(
-                data=raw_samples.tobytes(),
-                sample_width=frame.format.bytes,
-                frame_rate=frame.sample_rate,
-                channels=len(frame.layout.channels),
-            )
-
-            sound = sound.apply_gain(self.gain)
-
-            # Ref: https://github.com/jiaaro/pydub/blob/master/API.markdown#audiosegmentget_array_of_samples  # noqa
-            channel_sounds = sound.split_to_mono()
-            channel_samples = [s.get_array_of_samples() for s in channel_sounds]
-            new_samples: np.ndarray = np.array(channel_samples).T
-            new_samples = new_samples.reshape(raw_samples.shape)
-
-            new_frame = av.AudioFrame.from_ndarray(
-                new_samples, layout=frame.layout.name
-            )
-            new_frame.sample_rate = frame.sample_rate
-            return new_frame
-
-    webrtc_ctx = webrtc_streamer(
-        key="audio-filter",
-        mode=WebRtcMode.SENDRECV,
-        client_settings=WEBRTC_CLIENT_SETTINGS,
-        audio_processor_factory=AudioProcessor,
-        async_processing=True,
-    )
-
-    if webrtc_ctx.audio_processor:
-        webrtc_ctx.audio_processor.gain = st.slider(
-            "Gain", -10.0, +20.0, DEFAULT_GAIN, 0.05
-        )
-
-st.sidebar.title("Models")
-select = st.sidebar.selectbox("Select Model",['Yolov4-tiny', 'Yolov3-tiny', 'Yolov2-tiny', 'OpenPose Detection', 'Speech to Text'], key='1')
+st.sidebar.title("Programs")
+select = st.sidebar.selectbox("Select Program",['Object Detection', 'OpenPose Detection', 'Speech to Text'], key='1')
 
 flag = 0
 
-if select == 'Yolov4-tiny':
-    net = cv2.dnn.readNet("models/yolov4-tiny.weights", "models/yolov4-tiny.cfg")
-    flag = 0
-elif select == 'Yolov3-tiny':
-    net = cv2.dnn.readNet("models/yolov3-tiny.weights", "models/yolov3-tiny.cfg")
-    flag = 0
-elif select == 'Yolov2-tiny':
-    net = cv2.dnn.readNet("models/yolov2-tiny.weights", "models/yolov2-tiny.cfg")
+if select == 'Object Detection':
     flag = 0
 elif select == 'OpenPose Detection':
     flag = 1
@@ -104,6 +31,7 @@ elif select == 'Speech to Text':
     
 if flag == 0:
     st.title("Object Detection")
+    net = cv2.dnn.readNet("models/yolov4-tiny.weights", "models/yolov4-tiny.cfg")
     classes = []
     with open("coco.names", "r") as f:
         classes = [line.strip() for line in f.readlines()]
@@ -158,11 +86,34 @@ if flag == 0:
             
 
 
-    webrtc_ctx = webrtc_streamer(key="example", video_transformer_factory=VideoTransformer, client_settings=WEBRTC_CLIENT_SETTINGS, async_transform=True)
+    webrtc_ctx = webrtc_streamer(key="object filter", video_transformer_factory=VideoTransformer, client_settings=WEBRTC_CLIENT_SETTINGS, async_transform=True)
 elif flag == 1:
 
     st.title("Pose Detection")
+    net = cv2.dnn.readNetFromTensorflow("graph_opt.pb")
     
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--input', help='Path to image or video. Skip to capture frames from camera')
+    parser.add_argument('--thr', default=0.2, type=float, help='Threshold value for pose parts heat map')
+    parser.add_argument('--width', default=368, type=int, help='Resize input to specific width.')
+    parser.add_argument('--height', default=368, type=int, help='Resize input to specific height.')
+
+    args = parser.parse_args()
+
+    BODY_PARTS = { "Nose": 0, "Neck": 1, "RShoulder": 2, "RElbow": 3, "RWrist": 4,
+                "LShoulder": 5, "LElbow": 6, "LWrist": 7, "RHip": 8, "RKnee": 9,
+                "RAnkle": 10, "LHip": 11, "LKnee": 12, "LAnkle": 13, "REye": 14,
+                "LEye": 15, "REar": 16, "LEar": 17, "Background": 18 }
+
+    POSE_PAIRS = [ ["Neck", "RShoulder"], ["Neck", "LShoulder"], ["RShoulder", "RElbow"],
+                ["RElbow", "RWrist"], ["LShoulder", "LElbow"], ["LElbow", "LWrist"],
+                ["Neck", "RHip"], ["RHip", "RKnee"], ["RKnee", "RAnkle"], ["Neck", "LHip"],
+                ["LHip", "LKnee"], ["LKnee", "LAnkle"], ["Neck", "Nose"], ["Nose", "REye"],
+                ["REye", "REar"], ["Nose", "LEye"], ["LEye", "LEar"] ]
+
+    inWidth = args.width
+    inHeight = args.height
+
     class VideoTransformer(VideoTransformerBase):
         def transform(self, frame):
             img = frame.to_ndarray(format="bgr24")
@@ -213,5 +164,44 @@ elif flag == 1:
 
 elif 2:
     st.title("Speech to Text")
-    app_audio_filter()
+    DEFAULT_GAIN = 1.0
+
+    class AudioProcessor(AudioProcessorBase):
+        gain = DEFAULT_GAIN
+
+        def recv(self, frame: av.AudioFrame) -> av.AudioFrame:
+            raw_samples = frame.to_ndarray()
+            sound = pydub.AudioSegment(
+                data=raw_samples.tobytes(),
+                sample_width=frame.format.bytes,
+                frame_rate=frame.sample_rate,
+                channels=len(frame.layout.channels),
+            )
+
+            sound = sound.apply_gain(self.gain)
+
+            # Ref: https://github.com/jiaaro/pydub/blob/master/API.markdown#audiosegmentget_array_of_samples  # noqa
+            channel_sounds = sound.split_to_mono()
+            channel_samples = [s.get_array_of_samples() for s in channel_sounds]
+            new_samples: np.ndarray = np.array(channel_samples).T
+            new_samples = new_samples.reshape(raw_samples.shape)
+
+            new_frame = av.AudioFrame.from_ndarray(
+                new_samples, layout=frame.layout.name
+            )
+            new_frame.sample_rate = frame.sample_rate
+            return new_frame
+
+    webrtc_ctx = webrtc_streamer(
+        key="audio-filter",
+        mode=WebRtcMode.SENDRECV,
+        client_settings=WEBRTC_CLIENT_SETTINGS,
+        audio_processor_factory=AudioProcessor,
+        async_processing=True,
+    )
+
+    if webrtc_ctx.audio_processor:
+        webrtc_ctx.audio_processor.gain = st.slider(
+            "Gain", -10.0, +20.0, DEFAULT_GAIN, 0.05
+        )
     

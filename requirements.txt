@@ -1,8 +1,8 @@
-aiortc==1.2.0
-av==8.0.3
-numpy==1.20.3
-opencv_python==4.5.2.52
-streamlit==0.82.0
-streamlit_webrtc==0.20.1
+aiortc
+av
+numpy
+opencv_python
+streamlit
+streamlit_webrtc
 argparse
 pydub
