@@ -4,7 +4,7 @@ import streamlit as st
 from streamlit_webrtc import (
     AudioProcessorBase,
     ClientSettings,
-    VideoProcessorBase,
+    VideoTransformerBase,
     WebRtcMode,
     webrtc_streamer,
 )
