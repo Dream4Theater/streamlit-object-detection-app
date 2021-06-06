@@ -1,7 +1,7 @@
 import cv2 
 import numpy as np
 import streamlit as st
-from streamlit_webrtc import VideoTransformerBase, webrtc_streamer, ClientSettings, AudioProcessorBase
+from streamlit_webrtc import VideoTransformerBase, webrtc_streamer, ClientSettings, AudioProcessorBase, WebRtcMode
 import argparse
 import av
 import pydub
