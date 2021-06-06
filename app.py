@@ -13,9 +13,8 @@ import argparse
 import av
 import pydub
 import asyncio
-from pathlib import Path
-import urllib.request
-import time
+import speech_recognition as sr
+import pyttsx3 
 
 HERE = Path(__file__).parent
 
@@ -66,15 +65,6 @@ def download_file(url, download_to: Path, expected_size=None):
             weights_warning.empty()
         if progress_bar is not None:
             progress_bar.empty()
-
-# https://github.com/mozilla/DeepSpeech/releases/tag/v0.9.3
-MODEL_URL = "https://github.com/mozilla/DeepSpeech/releases/download/v0.9.3/deepspeech-0.9.3-models.pbmm"  # noqa
-LANG_MODEL_URL = "https://github.com/mozilla/DeepSpeech/releases/download/v0.9.3/deepspeech-0.9.3-models.scorer"  # noqa
-MODEL_LOCAL_PATH = HERE / "models/deepspeech-0.9.3-models.pbmm"
-LANG_MODEL_LOCAL_PATH = HERE / "models/deepspeech-0.9.3-models.scorer"
-
-download_file(MODEL_URL, MODEL_LOCAL_PATH, expected_size=188915987)
-download_file(LANG_MODEL_URL, LANG_MODEL_LOCAL_PATH, expected_size=953363776)
 
 st.sidebar.title("Programs")
 select = st.sidebar.selectbox("Select Program",['Object Detection', 'OpenPose Detection', 'Speech to Text'], key='1')
@@ -223,88 +213,49 @@ elif flag == 1:
 
 elif 2:
     st.title("Speech to Text")
-
-    class AudioProcessor(AudioProcessorBase):
-
-        async def recv_queued(self, frames: List[av.AudioFrame]) -> av.AudioFrame:
-            with self.frames_lock:
-                self.frames.extend(frames)
-
-            # Return empty frames to be silent.
-            new_frames = []
-            for frame in frames:
-                input_array = frame.to_ndarray()
-                new_frame = av.AudioFrame.from_ndarray(
-                    np.zeros(input_array.shape, dtype=input_array.dtype),
-                    layout=frame.layout.name,
-                )
-                new_frame.sample_rate = frame.sample_rate
-                new_frames.append(new_frame)
-
-            return new_frames
-    webrtc_ctx = webrtc_streamer(
-        key="speech-to-text-w-video",
-        mode=WebRtcMode.SENDRECV,
-        audio_processor_factory=AudioProcessor,
-        client_settings=ClientSettings(
-            rtc_configuration={
-                "iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]
-            },
-            media_stream_constraints={"video": True, "audio": True},
-        ),
-    )
-    while True:
-        lm_alpha = 0.931289039105002
-        lm_beta = 1.1834137581510284
-        beam = 100
-        status_indicator = st.empty()
-        text_output = st.empty()
-
-        if webrtc_ctx.audio_processor:
-            if stream is None:
-                from deepspeech import Model
-
-                model = Model(MODEL_LOCAL_PATH)
-                model.enableExternalScorer(LANG_MODEL_LOCAL_PATH)
-                model.setScorerAlphaBeta(lm_alpha, lm_beta)
-                model.setBeamWidth(beam)
-
-                stream = model.createStream()
-
-                status_indicator.write("Model loaded.")
-
-            sound_chunk = pydub.AudioSegment.empty()
-
-            audio_frames = []
-            with webrtc_ctx.audio_processor.frames_lock:
-                while len(webrtc_ctx.audio_processor.frames) > 0:
-                    frame = webrtc_ctx.audio_processor.frames.popleft()
-                    audio_frames.append(frame)
-
-            if len(audio_frames) == 0:
-                time.sleep(0.1)
-                status_indicator.write("No frame arrived.")
-                continue
-
-            status_indicator.write("Running. Say something!")
-
-            for audio_frame in audio_frames:
-                sound = pydub.AudioSegment(
-                    data=audio_frame.to_ndarray().tobytes(),
-                    sample_width=audio_frame.format.bytes,
-                    frame_rate=audio_frame.sample_rate,
-                    channels=len(audio_frame.layout.channels),
-                )
-                sound_chunk += sound
-
-            if len(sound_chunk) > 0:
-                sound_chunk = sound_chunk.set_channels(1).set_frame_rate(
-                    model.sampleRate()
-                )
-                buffer = np.array(sound_chunk.get_array_of_samples())
-                stream.feedAudioContent(buffer)
-                text = stream.intermediateDecode()
-                text_output.markdown(f"**Text:** {text}")
-        else:
-            status_indicator.write("AudioReciver is not set. Abort.")
-            break
+    # Python program to translate
+    # speech to text and text to speech
+    webrtc_ctx = webrtc_streamer(key="audio filter", client_settings=WEBRTC_CLIENT_SETTINGS, async_transform=True)
+    # Initialize the recognizer 
+    r = sr.Recognizer() 
+    
+    # Function to convert text to
+    # speech
+    def SpeakText(command): 
+        # Initialize the engine
+        engine = pyttsx3.init()
+        engine.say(command)
+        engine.runAndWait()
+        
+    # Loop infinitely for user to
+    # speak
+    
+    while(1):    
+        
+        # Exception handling to handle
+        # exceptions at the runtime
+        try:
+            
+            # use the microphone as source for input.
+            with sr.Microphone() as source2:
+                
+                # wait for a second to let the recognizer
+                # adjust the energy threshold based on
+                # the surrounding noise level 
+                r.adjust_for_ambient_noise(source2, duration=0.2)
+                
+                #listens for the user's input 
+                audio2 = r.listen(source2)
+                
+                # Using ggogle to recognize audio
+                MyText = r.recognize_google(audio2)
+                MyText = MyText.lower()
+    
+                print("Did you say "+MyText)
+                SpeakText(MyText)
+                
+        except sr.RequestError as e:
+            print("Could not request results; {0}".format(e))
+            
+        except sr.UnknownValueError:
+            print("unknown error occured")
