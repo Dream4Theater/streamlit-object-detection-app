@@ -8,4 +8,3 @@ argparse
 pydub
 pyttsx3
 SpeechRecognition
-PyAudio
