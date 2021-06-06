@@ -6,11 +6,6 @@ import argparse
 import av
 import pydub
 
-WEBRTC_CLIENT_SETTINGS = ClientSettings(
-    rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
-    media_stream_constraints={"video": True, "audio": True},
-)
-
 net = cv2.dnn.readNetFromTensorflow("graph_opt.pb")
 
 WEBRTC_CLIENT_SETTINGS = ClientSettings(
