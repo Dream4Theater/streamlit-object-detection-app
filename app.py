@@ -11,10 +11,6 @@ WEBRTC_CLIENT_SETTINGS = ClientSettings(
     media_stream_constraints={"video": True, "audio": True},
 )
 
-#Select Model
-st.sidebar.title("Models")
-select = st.sidebar.selectbox("Select Model",['Yolov4-tiny', 'Yolov3-tiny', 'Yolov2-tiny', 'OpenPose Detection'], key='1')
-
 net = cv2.dnn.readNetFromTensorflow("graph_opt.pb")
 
 WEBRTC_CLIENT_SETTINGS = ClientSettings(
@@ -86,8 +82,11 @@ def app_audio_filter():
             "Gain", -10.0, +20.0, DEFAULT_GAIN, 0.05
         )
 
+st.sidebar.title("Models")
+select = st.sidebar.selectbox("Select Model",['Yolov4-tiny', 'Yolov3-tiny', 'Yolov2-tiny', 'OpenPose Detection', 'Speech to Text'], key='1')
+
 flag = 0
-# Load Model
+
 if select == 'Yolov4-tiny':
     net = cv2.dnn.readNet("models/yolov4-tiny.weights", "models/yolov4-tiny.cfg")
     flag = 0
@@ -99,6 +98,8 @@ elif select == 'Yolov2-tiny':
     flag = 0
 elif select == 'OpenPose Detection':
     flag = 1
+elif select == 'Speech to Text':
+    flag = 2
     
 if flag == 0:
     st.title("Object Detection")
@@ -210,5 +211,6 @@ elif flag == 1:
     webrtc_ctx = webrtc_streamer(key="example", video_transformer_factory=VideoTransformer, client_settings=WEBRTC_CLIENT_SETTINGS, async_transform=True)
 
 elif 2:
+    st.title("Speech to Text")
     app_audio_filter()
     
