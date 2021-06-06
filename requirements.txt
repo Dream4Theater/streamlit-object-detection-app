@@ -6,4 +6,5 @@ streamlit
 streamlit_webrtc
 argparse
 pydub
-pyttsx3 
+pyttsx3
+SpeechRecognition
