@@ -14,9 +14,7 @@ import av
 import pydub
 import asyncio
 import speech_recognition as sr
-import pyttsx3 
-
-HERE = Path(__file__).parent
+import pyttsx3
 
 WEBRTC_CLIENT_SETTINGS = ClientSettings(
     rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
