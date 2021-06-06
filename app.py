@@ -11,6 +11,7 @@ from streamlit_webrtc import (
 import argparse
 import av
 import pydub
+import asyncio
 
 WEBRTC_CLIENT_SETTINGS = ClientSettings(
     rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
@@ -160,7 +161,7 @@ elif flag == 1:
         
             return img
 
-    webrtc_ctx = webrtc_streamer(key="example", video_transformer_factory=VideoTransformer, client_settings=WEBRTC_CLIENT_SETTINGS, async_transform=True)
+    webrtc_ctx = webrtc_streamer(key="openpose filter", video_transformer_factory=VideoTransformer, client_settings=WEBRTC_CLIENT_SETTINGS, async_transform=True)
 
 elif 2:
     st.title("Speech to Text")
